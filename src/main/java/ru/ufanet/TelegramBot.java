@@ -63,6 +63,9 @@ public class TelegramBot extends TelegramLongPollingBot {
     //Заметка удалена
     public final String noteDeleted = " deleted successfully!\n";
 
+    //Некорректный ввод
+    public final String incorrectInput = "Incorrect input." + commandList;
+
 
     //Список для хранения сообщений
     List<String> notes;
@@ -195,9 +198,13 @@ public class TelegramBot extends TelegramLongPollingBot {
 
             //Удалить все заметки
             case "/clear": {
-                notes.removeAll(notes);
+                notes.clear();
                 sendMessage(user_id, listCleared);
+                break;
             }
+            default:
+                sendMessage(user_id, incorrectInput);
+                break;
         }
     }
 
