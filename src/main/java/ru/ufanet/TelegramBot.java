@@ -134,7 +134,11 @@ public class TelegramBot extends TelegramLongPollingBot {
                 sendMessage(user_id, emptyDel);
                 return;
             } else {
+                try {
                 note_id = Integer.parseInt(noteText);
+                } catch (NumberFormatException e) {
+                    e.printStackTrace();
+                }
                 txt = "/del";
             }
         }
