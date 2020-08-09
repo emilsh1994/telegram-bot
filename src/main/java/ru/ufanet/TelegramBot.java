@@ -98,7 +98,7 @@ public class TelegramBot extends TelegramLongPollingBot {
 
         /**
          * Получаем список заметок определенного пользователя,
-         * еслт его еще нет, то заносим в мапу и создаем пустой список.
+         * если его еще нет, то заносим в мапу и создаем пустой список.
          */
         if (!map.containsKey(user_id)) {
             notes = new ArrayList<>();
@@ -108,7 +108,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         }
 
         //Получаем объект note от метода parseMessage
-        Note note = parseMessage(txt, user_id);
+        Note note = getNoteFromMessage(txt, user_id);
 
         String cmd = note.getCmdText();
         String noteText = note.getNoteText();
@@ -180,7 +180,7 @@ public class TelegramBot extends TelegramLongPollingBot {
     }
 
     //Определяем тип команды, текст заметки и номер заметки для удаления
-    public Note parseMessage(String text, long user_id) {
+    public Note getNoteFromMessage(String text, long user_id) {
 
         Note note = new Note();
 
@@ -194,28 +194,28 @@ public class TelegramBot extends TelegramLongPollingBot {
         }
 
         //Проверка на случай, если текст сообщения начинается с команды '/help'
-        if (text.startsWith("/help")) {
+        else if (text.startsWith("/help")) {
             cmdFromText = "/help";
         }
 
         //Проверка на случай, если текст сообщения начинается с команды '/clear'
-        if (text.startsWith("/clear")) {
+        else if (text.startsWith("/clear")) {
             cmdFromText = "/clear";
         }
 
         //Проверка на случай, если текст сообщения начинается с команды '/all'
-        if (text.startsWith("/all")) {
+        else if (text.startsWith("/all")) {
             cmdFromText = "/all";
         }
 
         //Проверка на случай, если текст сообщения начинается с команды '/add'
-        if (text.startsWith("/add")) {
+        else if (text.startsWith("/add")) {
             cmdFromText = "/add";
             noteFromText = text.replace("/add", "").trim();
         }
 
         //Проверка на случай, если текст сообщения начинается с команды '/del'
-        if (text.startsWith("/del")) {
+        else if (text.startsWith("/del")) {
             cmdFromText = "/del";
             noteFromText = text.replace("/del", "").trim();
 
@@ -226,11 +226,9 @@ public class TelegramBot extends TelegramLongPollingBot {
             } else {
                 try {
                     noteId = Integer.parseInt(noteFromText);
-                    System.out.println("number :" + noteId);
                 } catch (NumberFormatException e) {
                     e.printStackTrace();
                 }
-
             }
         }
 
