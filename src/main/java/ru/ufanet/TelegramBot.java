@@ -15,63 +15,48 @@ import java.util.Map;
 
 public class TelegramBot extends TelegramLongPollingBot {
 
-    //id пользователя
-    Long user_id;
-
-    //Токен выданный BotFather
-    public final String botToken = "1258217203:AAGK2sImKKCVSs9oWQp8ivoxBvb0LM7J1Hc";
+    //Мапа для сохранения пользователя и его листа
+    public static Map<Long, List<String>> map = new HashMap<>();
 
     //Имя бота
     public final String botUsername = "emilNotesBot";
 
-    //Строка приветствия
-    public final String greeting = "Hello!\n" +
+    //Токен выданный BotFather
+    public final String botToken = "1258217203:AAGK2sImKKCVSs9oWQp8ivoxBvb0LM7J1Hc";
+
+    //************************************************************//
+    private static final String greeting = "Hello!\n" +
             "This is a bot that helps you to manage your notes.\n" +
             "Type: '/help' to see all of the available commands.";
 
-    //Список доступных команд
-    public final String help = "List of all the available commands:\n" +
+    private static final String help = "List of all the available commands:\n" +
             "type '/add note-text' - adds a note where 'note-text' is a text of a note,\n" +
             "type '/all' - type this command to see all notes,\n" +
             "type '/del id' - this command deletes specific note by id,\n" +
             "type '/clear' - this command removes all notes.\n";
 
-    //Заголовок для списка заметок
-    public final String header = "Notes:\n";
+    private static final String header = "Notes:\n";
 
-    //Если написана команда '/add' без текста заметки
-    public final String emptyNote = "Note is empty! Type note text after command '/add'.";
+    private static final String viewAll = "Type '/all' to see all the notes.\n";
 
-    //Успешное добавление заметки
-    public final String addedNote = "' - Note added successfully! \n Type '/all' to see all the notes.\n";
+    private static final String emptyNote = "Note is empty! Type note text after command '/add'.";
 
-    //На случай, если еще не было добавлено заметок, но введена команда '/all'
-    public final String emptyNotes = "Sorry, list is empty. To add a note type: '/add' and add a note text after.\n";
+    private static final String addedNote = "' - Note added successfully!\n" + viewAll;
 
-    //На случай, если еще после команды '/del' ничего не написано
-    public final String emptyDel = "Please, add an id of a note after '/del' command\n";
+    private static final String emptyNotes = "Sorry, list is empty. To add a note type: '/add' and add a note text after.\n";
 
-    //Вывод подсказки
-    public final String commandList = "Type '/help' for command list.\n";
+    private static final String emptyDel = "Please, add an id of a note after '/del' command.\n";
 
-    //Очистка заметок прошла успешно.
-    public final String listCleared = "List cleared. Type '/help' for command list.\n";
+    private static final String commandList = "Type '/help' for command list.\n";
 
-    //Неправильный id
-    public final String wrongId = "Wrong id. Please try again.\n";
+    private static final String listCleared = "List cleared. Type '/help' for command list.\n";
 
-    //Заметка удалена
-    public final String noteDeleted = " deleted successfully!\n";
+    private static final String wrongId = "Wrong id. Please try again.\n";
 
-    //Некорректный ввод
-    public final String incorrectInput = "Incorrect input." + commandList;
+    private static final String noteDeleted = " deleted successfully!\n" + viewAll;
 
-
-    //Список для хранения сообщений
-    List<String> notes;
-
-    //Мапа для сохранения пользователя и его листа по id
-    Map<Long, List<String>> map = new HashMap<>();
+    private static final String incorrectInput = "Incorrect input." + commandList;
+    //************************************************************//
 
     //Инициализация
     public static void main(String[] args) {
@@ -99,13 +84,22 @@ public class TelegramBot extends TelegramLongPollingBot {
     //Listener
     public void onUpdateReceived(Update update) {
 
+        //Список для хранения сообщений
+        List<String> notes;
+
         //Получаем сообщение в msg
         Message msg = update.getMessage();
 
         //Получаем id чата
-        user_id = msg.getChatId();
+        Long user_id = msg.getChatId();
 
-        //Получаем список заметок по id
+        //Получаем текст из сообщения
+        String txt = msg.getText();
+
+        /**
+         * Получаем список заметок определенного пользователя,
+         * еслт его еще нет, то заносим в мапу и создаем пустой список.
+         */
         if (!map.containsKey(user_id)) {
             notes = new ArrayList<>();
             map.put(user_id, notes);
@@ -113,41 +107,15 @@ public class TelegramBot extends TelegramLongPollingBot {
             notes = map.get(user_id);
         }
 
-        //Получаем текст из сообщения
-        String txt = msg.getText();
+        //Получаем объект note от метода parseMessage
+        Note note = parseMessage(txt, user_id);
 
-        //Строка для ввода текста заметки
-        String s = "";
-
-        //Строка для хранения текста заметки
-        String noteText = "";
-
-        //Id заметки для удаления
-        int note_id = 0;
-
-        if (txt.startsWith("/add")) {
-            noteText = txt.replace("/add", "").trim();
-            txt = "/add";
-        }
-
-        if (txt.startsWith("/del")) {
-            noteText = txt.replace("/del", "").trim();
-            //Проверка на случай пустого id.
-            if (noteText.length() == 0) {
-                sendMessage(user_id, emptyDel);
-                return;
-            } else {
-                try {
-                note_id = Integer.parseInt(noteText);
-                } catch (NumberFormatException e) {
-                    e.printStackTrace();
-                }
-                txt = "/del";
-            }
-        }
+        String cmd = note.getCmdText();
+        String noteText = note.getNoteText();
+        int note_id = note.getNoteId();
 
         //Выбор команды
-        switch (txt) {
+        switch (cmd) {
 
             //Начало
             case "/start":
@@ -160,20 +128,9 @@ public class TelegramBot extends TelegramLongPollingBot {
                 break;
             }
 
-            //Добавление заметки. Пример: '/add Купить хлеб.'
-            case "/add": {
-                //Проверям случай, что строка пустая
-                if (noteText.length() == 0) {
-                    sendMessage(user_id, emptyNote);
-                    break;
-                }
-                notes.add(noteText);
-                sendMessage(user_id, "Note '" + noteText + addedNote);
-                break;
-            }
-
             //Вывод всех заметок
             case "/all": {
+                String s = "";
                 if (notes.size() == 0) {
                     sendMessage(user_id, emptyNotes);
                 } else {
@@ -182,6 +139,25 @@ public class TelegramBot extends TelegramLongPollingBot {
                     }
                     sendMessage(user_id, header + s + commandList);
                 }
+                break;
+            }
+
+            //Удалить все заметки
+            case "/clear": {
+                notes.clear();
+                sendMessage(user_id, listCleared);
+                break;
+            }
+
+            //Добавление заметки. Пример: '/add Купить хлеб.'
+            case "/add": {
+                //Проверям случай, что строка пустая
+                if (note.getNoteText().length() == 0) {
+                    sendMessage(user_id, emptyNote);
+                    break;
+                }
+                notes.add(noteText);
+                sendMessage(user_id, "'" + noteText + addedNote);
                 break;
             }
 
@@ -196,17 +172,75 @@ public class TelegramBot extends TelegramLongPollingBot {
                 break;
             }
 
-            //Удалить все заметки
-            case "/clear": {
-                notes.clear();
-                sendMessage(user_id, listCleared);
-                break;
-            }
+            //Защита от неправильного ввода
             default:
                 sendMessage(user_id, incorrectInput);
                 break;
         }
     }
+
+    //Определяем тип команды, текст заметки и номер заметки для удаления
+    public Note parseMessage(String text, long user_id) {
+
+        Note note = new Note();
+
+        int noteId = 0;
+        String noteFromText = "";
+        String cmdFromText = "";
+
+        //Проверка на случай, если текст сообщения начинается с команды '/start'
+        if (text.startsWith("/start")) {
+            cmdFromText = "/start";
+        }
+
+        //Проверка на случай, если текст сообщения начинается с команды '/help'
+        if (text.startsWith("/help")) {
+            cmdFromText = "/help";
+        }
+
+        //Проверка на случай, если текст сообщения начинается с команды '/clear'
+        if (text.startsWith("/clear")) {
+            cmdFromText = "/clear";
+        }
+
+        //Проверка на случай, если текст сообщения начинается с команды '/all'
+        if (text.startsWith("/all")) {
+            cmdFromText = "/all";
+        }
+
+        //Проверка на случай, если текст сообщения начинается с команды '/add'
+        if (text.startsWith("/add")) {
+            cmdFromText = "/add";
+            noteFromText = text.replace("/add", "").trim();
+        }
+
+        //Проверка на случай, если текст сообщения начинается с команды '/del'
+        if (text.startsWith("/del")) {
+            cmdFromText = "/del";
+            noteFromText = text.replace("/del", "").trim();
+
+            //Проверка на случай пустого id.
+            if (noteFromText.length() == 0) {
+                sendMessage(user_id, emptyDel);
+                return null;
+            } else {
+                try {
+                    noteId = Integer.parseInt(noteFromText);
+                    System.out.println("number :" + noteId);
+                } catch (NumberFormatException e) {
+                    e.printStackTrace();
+                }
+
+            }
+        }
+
+        note.setNoteId(noteId);
+        note.setCmdText(cmdFromText);
+        note.setNoteText(noteFromText);
+
+        return note;
+    }
+
 
     public String getBotUsername() {
         return botUsername;
