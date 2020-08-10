@@ -4,11 +4,28 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import javax.persistence.*;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+
+@Entity
 public class Note {
-    public int noteId;
-    public String cmdText;
-    public String noteText;
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.AUTO)
+    private long id;
+
+    @Transient
+    private long noteId;
+
+    @Column(name = "userId")
+    private long userId;
+
+    @Transient
+    private String cmdText;
+
+    @Column(name = "noteText")
+    private String noteText;
 }

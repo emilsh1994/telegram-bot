@@ -1,36 +1,29 @@
 package ru.ufanet.service;
 
-import org.jvnet.hk2.annotations.Service;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.telegram.telegrambots.ApiContextInitializer;
-import org.telegram.telegrambots.bots.DefaultBotOptions;
+import org.springframework.stereotype.Service;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import ru.ufanet.domain.Note;
+import ru.ufanet.repo.NoteRepo;
 
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 @Service
 public class TelegramBot extends TelegramLongPollingBot {
+
+    @Autowired
+    private NoteRepo noteRepo;
 
     @Value("${bot-token}")
     private String botToken;
 
     @Value("${bot-name}")
     private String botUsername;
-
-    public static Map<Long, List<String>> map = new HashMap<>();
-
-    public TelegramBot() {
-        ApiContextInitializer.init();
-    }
 
     //************************************************************//
     private static final String greeting = "Hello!\n" +
@@ -70,9 +63,6 @@ public class TelegramBot extends TelegramLongPollingBot {
     @Override
     public void onUpdateReceived(Update update) {
 
-        //Список для хранения сообщений
-        List<String> notes;
-
         //Получаем сообщение в msg
         Message msg = update.getMessage();
 
@@ -82,23 +72,15 @@ public class TelegramBot extends TelegramLongPollingBot {
         //Получаем текст из сообщения
         String txt = msg.getText();
 
-        /**
-         * Получаем список заметок определенного пользователя,
-         * если его еще нет, то заносим в мапу и создаем пустой список.
-         */
-        if (!map.containsKey(user_id)) {
-            notes = new ArrayList<>();
-            map.put(user_id, notes);
-        } else {
-            notes = map.get(user_id);
-        }
-
         //Получаем объект note от метода parseMessage
         Note note = getNoteFromMessage(txt, user_id);
 
         String cmd = note.getCmdText();
         String noteText = note.getNoteText();
-        int note_id = note.getNoteId();
+        long note_id = note.getNoteId();
+
+        //Все заметки пользователя
+        List<Note> allNotes = noteRepo.findAllByUserIdOrderByIdAsc(user_id);
 
         //Выбор команды
         switch (cmd) {
@@ -117,20 +99,22 @@ public class TelegramBot extends TelegramLongPollingBot {
             //Вывод всех заметок
             case "/all": {
                 String s = "";
-                if (notes.size() == 0) {
+                if (allNotes.isEmpty()) {
                     sendMessage(user_id, emptyNotes);
-                } else {
-                    for (int i = 0; i < notes.size(); i++) {
-                        s += "#" + (i + 1) + " " + notes.get(i) + "\n";
-                    }
-                    sendMessage(user_id, header + s + commandList);
+                    ;
+                    break;
                 }
+                int i = 0;
+                for (Note allNote : allNotes) {
+                    s += "#" + ++i + " " + allNote.getNoteText() + "\n";
+                }
+                sendMessage(user_id, header + s + commandList);
                 break;
             }
 
             //Удалить все заметки
             case "/clear": {
-                notes.clear();
+                noteRepo.deleteAll(allNotes);
                 sendMessage(user_id, listCleared);
                 break;
             }
@@ -142,17 +126,18 @@ public class TelegramBot extends TelegramLongPollingBot {
                     sendMessage(user_id, emptyNote);
                     break;
                 }
-                notes.add(noteText);
+                noteRepo.save(note);
                 sendMessage(user_id, "'" + noteText + addedNote);
                 break;
             }
 
             //Удаление заметки из списка. Пример: '/del 2'
             case "/del": {
-                if (note_id < 1 || note_id > notes.size()) {
+                if (note_id < 1 || note_id > allNotes.size()) {
                     sendMessage(user_id, wrongId);
                 } else {
-                    notes.remove(note_id - 1);
+                    Note forRem = allNotes.get((int) note_id - 1);
+                    noteRepo.delete(forRem);
                     sendMessage(user_id, "#" + note_id + noteDeleted);
                 }
                 break;
@@ -176,7 +161,6 @@ public class TelegramBot extends TelegramLongPollingBot {
             e.printStackTrace();
         }
     }
-
 
     //Определяем тип команды, текст заметки и номер заметки для удаления
     public Note getNoteFromMessage(String text, long user_id) {
@@ -232,9 +216,9 @@ public class TelegramBot extends TelegramLongPollingBot {
         }
 
         note.setNoteId(noteId);
-        note.setCmdText(cmdFromText);
+        note.setUserId(user_id);
         note.setNoteText(noteFromText);
-
+        note.setCmdText(cmdFromText);
         return note;
     }
 
@@ -247,5 +231,4 @@ public class TelegramBot extends TelegramLongPollingBot {
     public String getBotToken() {
         return botToken;
     }
-
 }
