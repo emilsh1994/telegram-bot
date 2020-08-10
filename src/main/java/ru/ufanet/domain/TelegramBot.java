@@ -1,8 +1,8 @@
-package ru.ufanet;
+package ru.ufanet.domain;
 
-import org.telegram.telegrambots.ApiContextInitializer;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
-import org.telegram.telegrambots.meta.TelegramBotsApi;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
@@ -13,16 +13,17 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+@SpringBootApplication
 public class TelegramBot extends TelegramLongPollingBot {
 
-    //Мапа для сохранения пользователя и его листа
+    @Value("${bot-token}")
+    private String botToken;
+
+    @Value("${bot-name}")
+    private String botUsername;
+
     public static Map<Long, List<String>> map = new HashMap<>();
 
-    //Имя бота
-    public final String botUsername = "emilNotesBot";
-
-    //Токен выданный BotFather
-    public final String botToken = "1258217203:AAGK2sImKKCVSs9oWQp8ivoxBvb0LM7J1Hc";
 
     //************************************************************//
     private static final String greeting = "Hello!\n" +
@@ -58,30 +59,8 @@ public class TelegramBot extends TelegramLongPollingBot {
     private static final String incorrectInput = "Incorrect input." + commandList;
     //************************************************************//
 
-    //Инициализация
-    public static void main(String[] args) {
-        ApiContextInitializer.init();
-        TelegramBotsApi botApi = new TelegramBotsApi();
-        try {
-            botApi.registerBot(new TelegramBot());
-        } catch (TelegramApiException e) {
-            e.printStackTrace();
-        }
-    }
-
-    //Метод для отправки сообщений
-    public void sendMessage(Long id, String text) {
-        SendMessage sendMsg = new SendMessage();
-        sendMsg.setChatId(id);
-        sendMsg.setText(text);
-        try {
-            execute(sendMsg);
-        } catch (TelegramApiException e) {
-            e.printStackTrace();
-        }
-    }
-
     //Listener
+    @Override
     public void onUpdateReceived(Update update) {
 
         //Список для хранения сообщений
@@ -179,6 +158,19 @@ public class TelegramBot extends TelegramLongPollingBot {
         }
     }
 
+    //Метод для отправки сообщений
+    public void sendMessage(Long id, String text) {
+        SendMessage sendMsg = new SendMessage();
+        sendMsg.setChatId(id);
+        sendMsg.setText(text);
+        try {
+            execute(sendMsg);
+        } catch (TelegramApiException e) {
+            e.printStackTrace();
+        }
+    }
+
+
     //Определяем тип команды, текст заметки и номер заметки для удаления
     public Note getNoteFromMessage(String text, long user_id) {
 
@@ -239,11 +231,12 @@ public class TelegramBot extends TelegramLongPollingBot {
         return note;
     }
 
-
+    @Override
     public String getBotUsername() {
         return botUsername;
     }
 
+    @Override
     public String getBotToken() {
         return botToken;
     }

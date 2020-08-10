@@ -1,4 +1,4 @@
-package ru.ufanet;
+package ru.ufanet.domain;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
