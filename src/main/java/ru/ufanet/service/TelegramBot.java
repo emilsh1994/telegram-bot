@@ -1,19 +1,23 @@
-package ru.ufanet.domain;
+package ru.ufanet.service;
 
+import org.jvnet.hk2.annotations.Service;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.telegram.telegrambots.ApiContextInitializer;
+import org.telegram.telegrambots.bots.DefaultBotOptions;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
+import ru.ufanet.domain.Note;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-@SpringBootApplication
+@Service
 public class TelegramBot extends TelegramLongPollingBot {
 
     @Value("${bot-token}")
@@ -24,6 +28,9 @@ public class TelegramBot extends TelegramLongPollingBot {
 
     public static Map<Long, List<String>> map = new HashMap<>();
 
+    public TelegramBot() {
+        ApiContextInitializer.init();
+    }
 
     //************************************************************//
     private static final String greeting = "Hello!\n" +
